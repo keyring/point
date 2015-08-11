@@ -6,19 +6,32 @@ typedef struct color {
   unsigned char r,g,b;
 }color;
 
-void clear(int width, int height, int clrear_color, color *output)
+const int WIDTH = 1024;
+const int HEIGHT = 768;
+
+void point(int x, int y, color point_color, color *canvas)
 {
-    memset(output, clrear_color, 3*width*height);
+    int index = y * HEIGHT + x;
+    canvas[index].r = point_color.r;
+    canvas[index].g = point_color.g;
+    canvas[index].b = point_color.b;
+}
+
+void clear(int width, int height, int clrear_color, color *canvas)
+{
+    memset(canvas, clrear_color, 3*width*height);
 }
 
 
-void render(color *output)
+void render(int width, int height, color *canvas)
 {
-    clear(1024, 768, 120, output);
+    clear(width, height, 255, canvas);
+    color color  = {255, 0, 0};
+    point(40, 40, color, canvas);
 }
 
 
-int out_result(int width, int height, color *color)
+int print(int width, int height, color *color)
 {
     int length = width * height;
     FILE *f = fopen("image.ppm", "w");
@@ -26,6 +39,8 @@ int out_result(int width, int height, color *color)
     for (int i = 0; i < length; i++) {
         fprintf( f, "%d %d %d ", color[i].r, color[i].g, color[i].b );
     }
+
+    printf("-----------OUTPUT SUCCESS--------\n");
 
     return  fclose(f);
 }
@@ -35,12 +50,17 @@ int main(int argc, char **argv)
 {
   printf("----------POINT RENDER----------\n");
 
-  const short w = 1024,h = 768;
+  const int w = WIDTH;
+  const int h = HEIGHT;
 
-  color out_color[w*h] = {0};
+  color canvas[w*h] = {0};
 
-  render(out_color);
+  render(w, h, canvas);
 
-  return out_result(w, h, out_color);
+  if (print(w, h, canvas)) {
+      return -1;
+  }
+
+  return 0;
 
 }
