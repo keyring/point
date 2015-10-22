@@ -2,42 +2,41 @@
 #include <stdlib.h>
 #include <string.h>
 
-typedef struct color {
-  unsigned char r,g,b;
-}color;
+struct color { unsigned char r,g,b; };
+struct point { int x,y; };
+struct paint { int width; int height; struct color *canvas; };
 
-const int WIDTH = 1024;
-const int HEIGHT = 768;
-
-void point(int x, int y, color point_color, color *canvas)
+void pixel(struct point pos, struct color pixel_color, struct paint *painter)
 {
-    int index = y * HEIGHT + x;
-    canvas[index].r = point_color.r;
-    canvas[index].g = point_color.g;
-    canvas[index].b = point_color.b;
+    int index = pos.y * painter->height + pos.x;
+    painter->canvas[index].r = pixel_color.r;
+    painter->canvas[index].g = pixel_color.g;
+    painter->canvas[index].b = pixel_color.b;
 }
 
-void clear(int width, int height, int clrear_color, color *canvas)
+void clear(int clrear_color, struct paint *painter)
 {
-    memset(canvas, clrear_color, 3*width*height);
+    memset(painter->canvas, clrear_color, 3*painter->width*painter->height);
 }
 
 
-void render(int width, int height, color *canvas)
+void render(struct paint *painter)
 {
-    clear(width, height, 255, canvas);
-    color color  = {255, 0, 0};
-    point(40, 40, color, canvas);
+    clear(255, painter);
+    struct color color  = {255, 0, 0};
+    struct point pos = {40, 40};
+    pixel(pos, color, painter);
 }
 
 
-int print(int width, int height, color *color)
+int print(struct paint *painter)
 {
-    int length = width * height;
+    int length = painter->width * painter->height;
     FILE *f = fopen("image.ppm", "w");
-    fprintf( f, "P3\n%d %d\n%d\n", width, height, 255 );
+
+    fprintf( f, "P3\n%d %d\n%d\n", painter->width, painter->height, 255 );
     for (int i = 0; i < length; i++) {
-        fprintf( f, "%d %d %d ", color[i].r, color[i].g, color[i].b );
+        fprintf( f, "%d %d %d ",painter->canvas[i].r, painter->canvas[i].g, painter->canvas[i].b );
     }
 
     printf("-----------OUTPUT SUCCESS--------\n");
@@ -50,14 +49,16 @@ int main(int argc, char **argv)
 {
   printf("----------POINT RENDER----------\n");
 
-  const int w = WIDTH;
-  const int h = HEIGHT;
+  const int w = 100;
+  const int h = 100;
 
-  color canvas[w*h] = {0};
+  struct color canvas[w*h] = {0};
+  struct paint painter = {.width = w,
+                          .height = h,
+                          .canvas = canvas };
+  render(&painter);
 
-  render(w, h, canvas);
-
-  if (print(w, h, canvas)) {
+  if (print(&painter)) {
       return -1;
   }
 
