@@ -20,41 +20,23 @@ void line_dda(struct point start, struct point end, struct color line_color, str
     int dx = end.x - start.x;
     int dy = end.y - start.y;
 
-    if(abs(dy) <= abs(dx)){
-        /* y1 = y0 + k  */
-        float k = (float)dy/dx;
-        struct point pos;
-        if(dx <= 0){
-            struct point temp = start;
-            start = end;
-            end = temp;
-        }
-        int x = start.x;
-        float y = (float)start.y;
-        for(; x <= end.x; x++){
-            pos.x = x;
-            pos.y = (int)(y+0.5);
-            pixel(pos, line_color, painter);
-            y += k;
-        }
-    }else{
-        /* x1 = x0 + k */
-        float k = (float)dx/dy;
-        struct point pos;
-        if(dy <= 0){
-            struct point temp = start;
-            start = end;
-            end = temp;
-        }
-        float x = (float)start.x;
-        int y = start.y;
-        for(; y <= end.y; y++){
-            pos.x = (int)(x+0.5);
-            pos.y = y;
-            pixel(pos, line_color, painter);
-            x += k;
-        }
+    int steps = abs(dx) >= abs(dy) ? abs(dx) : abs(dy);
+
+    float xi = (float)dx / steps;
+    float yi = (float)dy / steps;
+
+    struct point pos;
+
+    float x = (float)start.x;
+    float y = (float)start.y;
+    for(int i = 0; i <= steps; i++){
+        pos.x = (int)(x + 0.5);
+        pos.y = (int)(y + 0.5);
+        pixel(pos, line_color, painter);
+        x += xi;
+        y += yi;
     }
+    
 }
 
 void line_midpoint(struct point start ,struct point end, struct color line_color, struct paint *painter)
