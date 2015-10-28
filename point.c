@@ -20,10 +20,15 @@ void line_dda(struct point start, struct point end, struct color line_color, str
     int dx = end.x - start.x;
     int dy = end.y - start.y;
 
-    if(abs(dy)abs(dy) <= abs(dx)){
+    if(abs(dy) <= abs(dx)){
         /* y1 = y0 + k  */
         float k = (float)dy/dx;
         struct point pos;
+        if(dx <= 0){
+            struct point temp = start;
+            start = end;
+            end = temp;
+        }
         int x = start.x;
         float y = (float)start.y;
         for(; x <= end.x; x++){
@@ -36,6 +41,11 @@ void line_dda(struct point start, struct point end, struct color line_color, str
         /* x1 = x0 + k */
         float k = (float)dx/dy;
         struct point pos;
+        if(dy <= 0){
+            struct point temp = start;
+            start = end;
+            end = temp;
+        }
         float x = (float)start.x;
         int y = start.y;
         for(; y <= end.y; y++){
@@ -47,13 +57,18 @@ void line_dda(struct point start, struct point end, struct color line_color, str
     }
 }
 
+void line_midpoint(struct point start ,struct point end, struct color line_color, struct paint *painter)
+{
+    
+}
+
 void line(struct point start, struct point end, struct color line_color, struct paint *painter)
 {
     /* dda */
     line_dda(start, end, line_color, painter);
 
     /* mid point  */
-
+    //line_midpoint(start, end, line_color, painter);
     /* bresenham   */
 }
 
@@ -77,9 +92,14 @@ void render(struct paint *painter)
 
     /* paint a line */
     struct color line_color = {255, 0, 0};
-    struct point start = {45, 45};
-    struct point end = {80, 50};
-    line(start, end, line_color, painter);
+    struct point start = {50,50};
+
+    for(int i = 0; i < 100; i++){
+        int x = rand()%100;
+        int y = rand()%100;
+        struct point end = {x, y};
+        line(end, start, line_color, painter);
+    }
 }
 
 
