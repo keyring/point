@@ -20,7 +20,7 @@ void line_dda(struct point start, struct point end, struct color line_color, str
     int dx = end.x - start.x;
     int dy = end.y - start.y;
 
-    if(abs(dx) >= abs(dy)){
+    if(abs(dy)abs(dy) <= abs(dx)){
         /* y1 = y0 + k  */
         float k = (float)dy/dx;
         struct point pos;
@@ -54,7 +54,7 @@ void line(struct point start, struct point end, struct color line_color, struct 
 
     /* mid point  */
 
-    /* breshman   */
+    /* bresenham   */
 }
 
 void triangle(struct point pos1, struct point pos2, struct point pos3, struct color line_color, struct paint *painter)
