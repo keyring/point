@@ -25,10 +25,10 @@ void line_dda(struct point start, struct point end, struct color line_color, str
     float xi = (float)dx / steps;
     float yi = (float)dy / steps;
 
-    float x = (float)start.x;
-    float y = (float)start.y;
+    float x = (float)start.x + 0.5;
+    float y = (float)start.y + 0.5;
     for(int i = 0; i <= steps; i++){
-        pixel((int)(x + 0.5), (int)(y + 0.5),line_color, painter);
+        pixel((int)x, (int)y, line_color, painter);
         x += xi;
         y += yi;
     }
