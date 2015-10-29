@@ -6,10 +6,10 @@ struct color { unsigned char r,g,b; };
 struct point { int x,y; };
 struct paint { int width; int height; struct color *canvas; };
 
-void pixel(struct point pos, struct color pixel_color, struct paint *painter)
+void pixel(int x, int y, struct color pixel_color, struct paint *painter)
 {
-    pos.y = painter->height - pos.y;
-    int index = pos.y * painter->height + pos.x;
+    y = painter->height - y;
+    int index = y * painter->height + x;
     painter->canvas[index].r = pixel_color.r;
     painter->canvas[index].g = pixel_color.g;
     painter->canvas[index].b = pixel_color.b;
@@ -25,14 +25,10 @@ void line_dda(struct point start, struct point end, struct color line_color, str
     float xi = (float)dx / steps;
     float yi = (float)dy / steps;
 
-    struct point pos;
-
     float x = (float)start.x;
     float y = (float)start.y;
     for(int i = 0; i <= steps; i++){
-        pos.x = (int)(x + 0.5);
-        pos.y = (int)(y + 0.5);
-        pixel(pos, line_color, painter);
+        pixel((int)(x + 0.5), (int)(y + 0.5),line_color, painter);
         x += xi;
         y += yi;
     }
@@ -69,8 +65,7 @@ void render(struct paint *painter)
 
     /* paint a point */
     struct color color  = {255, 0, 0};
-    struct point pos = {40, 40};
-    pixel(pos, color, painter);
+    pixel(40,40, color, painter);
 
     /* paint a line */
     struct color line_color = {255, 0, 0};
