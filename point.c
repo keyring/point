@@ -37,7 +37,30 @@ void line_dda(struct point start, struct point end, struct color line_color, str
 
 void line_midpoint(struct point start ,struct point end, struct color line_color, struct paint *painter)
 {
-    
+    int dx, dy, d, d1, d2, x, y;
+    dy = end.y - start.y;
+    dx = end.x - start.x;
+    d = 2 * dy + dx;
+    d1 = 2 * dy;
+    d2 = 2 * (dy + dx);
+    x = start.x;
+    y = start.y;
+
+    if(abs(dx) > abs(dy)){
+        while(x <= end.x){
+            pixel(x, y, line_color, painter);
+            if(d < 0){ x++; y++; d+=d2; }
+            else{ x++; d+=d1; }
+        }
+    }else{
+        while(y <= end.y){
+            pixel(x, y, line_color, painter);
+            if(d < 0){ y++; x++; d+=d2; }
+            else{ y++; d+=d1; }
+        }
+    }
+
+    /* todo */
 }
 
 void line(struct point start, struct point end, struct color line_color, struct paint *painter)
