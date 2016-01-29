@@ -6,6 +6,16 @@ struct color { unsigned char r,g,b; };
 struct point { int x,y; };
 struct paint { int width; int height; struct color *canvas; };
 
+/* utility */
+void swap(int *a, int *b)
+{
+    int t = *a;
+    *a = *b;
+    *b = t;
+}
+
+
+
 void pixel(int x, int y, struct color pixel_color, struct paint *painter)
 {
     y = painter->height - y;
@@ -36,67 +46,39 @@ void line_dda(struct point start, struct point end, struct color line_color, str
 
 void line_midpoint(struct point start ,struct point end, struct color line_color, struct paint *painter)
 {
-    int dx, dy, d, d1, d2, x, y;
-    int a = start.y - end.y;
-    int b = end.x - start.x;
-    x = start.x;
-    y = start.y;
+    int dx, dy, d, incry, incre, incrne, slope=0;
+    int x1 = start.x;
+    int y1 = start.y;
+    int x2 = end.x;
+    int y2 = end.y;
 
-    dx = end.x - start.x;
-    dy = end.y - start.y;
-    int xi = dx < 0 ? -1 : 1;
-    int yi = dy < 0 ? -1 : 1;
-    int steps = abs(dx) >= abs(dy) ? abs(dx) : abs(dy);
-
-    if(abs(dx) > abs(dy)){
-        if(dy >= 0){
-            d =  2 * a + b;
-            d1 = 2 * (a);
-            d2 = 2 * (a) + 2 * b;
-            while(steps-- >= 0){
-                printf("%d,%d\n",x,y);
-                pixel(x, y, line_color, painter);
-                x+=xi;
-                if(d < 0){ y+=yi; d+=d2; }
-                else{ d+=d1; }
-            }
-        }else{
-            d = 2 * (xi*a) - b;
-            d1 = 2 * (xi*a) - 2*b;
-            d2 = 2 * (xi*a);
-            while(steps-- >= 0){
-                pixel(x, y, line_color, painter);
-                x+=xi;
-                if(d < 0){ d+=d2; }
-                else{ y+=yi; d+=d1; }
-            }
-        }
-
-    }else{
-        if(dx >= 0){
-            d = 2 * (yi*b) + a;
-            d1 = 2 * (yi*b);
-            d2 = 2 * (yi*b) + 2*a;
-            while(steps-- >= 0){
-                pixel(x, y, line_color, painter);
-                y+=yi;
-                if(d < 0){ x+=xi; d+=d2; }
-                else{ d+=d1; }
-            }
-        }else{
-            d = 2 * (yi*b) - a;
-            d1 = 2 * (yi*b) - 2*a;
-            d2 = 2 * (yi*b);
-            while(steps-- >= 0){
-                pixel(x, y, line_color, painter);
-                y+=yi;
-                if(d < 0){ d+=d2; }
-                else{ x+=xi; d+=d1; }
-            }
-        }
+    dx = abs(x1-x2);
+    dy = abs(y1-y2);
+    if(dy>dx){
+        swap(&x1, &y1);
+        swap(&x2, &y2);
+        swap(&dx, &dy);
+        slope = 1;
     }
+    if(x1 > x2){
+        swap(&x1, &x2);
+        swap(&y1, &y2);
+    }
+    if(y1 > y2){ incry = -1; }
+    else{ incry = 1; }
 
-    /* todo */
+    d = 2*dy-dx;
+    incre = 2*dy;
+    incrne = 2*(dy-dx);
+
+    while(x1 <= x2){
+        if(slope){ pixel(y1, x1, line_color, painter); }
+        else{ pixel(x1, y1, line_color, painter); }
+
+        x1++;
+        if(d < 0){ d+= incre; }
+        else{ y1 += incry; d += incrne; }
+    }
 }
 
 void line(struct point start, struct point end, struct color line_color, struct paint *painter)
@@ -130,9 +112,9 @@ void render(struct paint *painter)
     struct color line_color = {0, 0, 0};
     struct point start = {50,50};
 
-    for(int i = 0; i < 1; i++){
-        int x = 20;//rand()%100;
-        int y = 60;//rand()%100;
+    for(int i = 0; i < 100; i++){
+        int x = rand()%100;
+        int y = rand()%100;
         struct point end = {x, y};
         line(start, end, line_color, painter);
     }
