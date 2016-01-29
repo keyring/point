@@ -14,8 +14,6 @@ void swap(int *a, int *b)
     *b = t;
 }
 
-
-
 void pixel(int x, int y, struct color pixel_color, struct paint *painter)
 {
     y = painter->height - y;
@@ -81,14 +79,39 @@ void line_midpoint(struct point start ,struct point end, struct color line_color
     }
 }
 
+void line_bresenham(struct point start, struct point end, struct color line_color, struct paint *painter)
+{
+    int x1 = start.x;
+    int y1 = start.y;
+    int x2 = end.x;
+    int y2 = end.y;
+
+    int dx = abs(x1-x2);
+    int dy = abs(y1-y2);
+    int steps = dx>dy ? dx : dy;
+
+    int xi = x1 < x2 ? 1 : -1;
+    int yi = y1 < y2 ? 1 : -1;
+
+    int err = (dx>dy ? dx : -dy)>>1, e2;
+    for(int i = 0; i <= steps; i++){
+        pixel(x1, y1, line_color, painter);
+        e2 = err;
+        if(e2 > -dx){ err -= dy; x1 += xi; }
+        if(e2 < dy){ err += dx; y1 += yi; }
+    }
+}
+
 void line(struct point start, struct point end, struct color line_color, struct paint *painter)
 {
     /* dda */
 //    line_dda(start, end, line_color, painter);
 
     /* mid point  */
-    line_midpoint(start, end, line_color, painter);
+//    line_midpoint(start, end, line_color, painter);
+
     /* bresenham   */
+    line_bresenham(start, end, line_color, painter);
 }
 
 void triangle(struct point pos1, struct point pos2, struct point pos3, struct color line_color, struct paint *painter)
