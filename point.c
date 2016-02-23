@@ -117,6 +117,36 @@ void line(struct point start, struct point end, struct color line_color, struct 
 void triangle(struct point pos1, struct point pos2, struct point pos3, struct color line_color, struct paint *painter)
 {}
 
+
+void plot(int cx, int cy, int x, int y, struct color pixel_color, struct paint * painter)
+{
+    pixel(cx+x, cy+y, pixel_color, painter); pixel(cx+y, cy+x, pixel_color, painter);
+    pixel(cx-x, cy+y, pixel_color, painter); pixel(cx-y, cy+x, pixel_color, painter);
+    pixel(cx+x, cy-y, pixel_color, painter); pixel(cx+y, cy-x, pixel_color, painter);
+    pixel(cx-x, cy-y, pixel_color, painter); pixel(cx-y, cy-x, pixel_color, painter);
+}
+
+void circle(int cx, int cy, int radius, struct color circle_color, struct paint *painter)
+{
+    int x = 0;
+    int y = radius;
+    int d = 1 - radius;         /* 1.25 - r */
+
+    plot(cx, cy, x, y, circle_color, painter);
+
+    while(x <= y){
+        if(d<0){
+            d += 2*x+3;
+        }else{
+            d += 2*(x-y)+5;
+            --y;
+        }
+        ++x;
+        plot(cx, cy, x, y, circle_color, painter);
+    }
+}
+
+
 void clear(int clear_color, struct paint *painter)
 {
     memset(painter->canvas, clear_color, 3*painter->width*painter->height);
@@ -141,6 +171,11 @@ void render(struct paint *painter)
         struct point end = {x, y};
         line(start, end, line_color, painter);
     }
+
+    /* paint a circle */
+    struct color circle_color = {124,22,57};
+    int circle_radius = 20;
+    circle(50, 50, circle_radius, circle_color, painter);
 }
 
 
