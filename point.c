@@ -14,8 +14,9 @@ void swap(int *a, int *b)
     *b = t;
 }
 
-void pixel(int x, int y, struct color pixel_color, struct paint *painter)
+void pixel(struct paint *painter, int x, int y, struct color pixel_color)
 {
+    /* origin is left-bottom */
     y = painter->height - y;
     int index = y * painter->height + x;
     painter->canvas[index].r = pixel_color.r;
@@ -23,7 +24,7 @@ void pixel(int x, int y, struct color pixel_color, struct paint *painter)
     painter->canvas[index].b = pixel_color.b;
 }
 
-void line_dda(struct point start, struct point end, struct color line_color, struct paint *painter)
+void line_dda(struct paint *painter, struct point start, struct point end, struct color line_color)
 {
     int dx = end.x - start.x;
     int dy = end.y - start.y;
@@ -36,13 +37,13 @@ void line_dda(struct point start, struct point end, struct color line_color, str
     float x = (float)start.x + 0.5;
     float y = (float)start.y + 0.5;
     for(int i = 0; i <= steps; i++){
-        pixel((int)x, (int)y, line_color, painter);
+        pixel(painter, (int)x, (int)y, line_color);
         x += xi;
         y += yi;
     }
 }
 
-void line_midpoint(struct point start ,struct point end, struct color line_color, struct paint *painter)
+void line_midpoint(struct paint *painter, struct point start ,struct point end, struct color line_color)
 {
     int dx, dy, d, incry, incre, incrne, slope=0;
     int x1 = start.x;
@@ -70,8 +71,8 @@ void line_midpoint(struct point start ,struct point end, struct color line_color
     incrne = 2*(dy-dx);
 
     while(x1 <= x2){
-        if(slope){ pixel(y1, x1, line_color, painter); }
-        else{ pixel(x1, y1, line_color, painter); }
+        if(slope){ pixel(painter, y1, x1, line_color); }
+        else{ pixel(painter, x1, y1, line_color); }
 
         x1++;
         if(d < 0){ d+= incre; }
@@ -79,7 +80,7 @@ void line_midpoint(struct point start ,struct point end, struct color line_color
     }
 }
 
-void line_bresenham(struct point start, struct point end, struct color line_color, struct paint *painter)
+void line_bresenham(struct paint *painter, struct point start, struct point end, struct color line_color)
 {
     int x1 = start.x;
     int y1 = start.y;
@@ -95,44 +96,48 @@ void line_bresenham(struct point start, struct point end, struct color line_colo
 
     int err = (dx>dy ? dx : -dy)>>1, e2;
     for(int i = 0; i <= steps; i++){
-        pixel(x1, y1, line_color, painter);
+        pixel(painter, x1, y1, line_color);
         e2 = err;
         if(e2 > -dx){ err -= dy; x1 += xi; }
         if(e2 < dy){ err += dx; y1 += yi; }
     }
 }
 
-void line(struct point start, struct point end, struct color line_color, struct paint *painter)
+void line(struct paint *painter, struct point start, struct point end, struct color line_color)
 {
     /* dda */
-//    line_dda(start, end, line_color, painter);
+   // line_dda(painter, start, end, line_color);
 
     /* mid point  */
-//    line_midpoint(start, end, line_color, painter);
+   // line_midpoint(painter, start, end, line_color);
 
     /* bresenham   */
-    line_bresenham(start, end, line_color, painter);
+    line_bresenham(painter, start, end, line_color);
 }
 
-void triangle(struct point pos1, struct point pos2, struct point pos3, struct color line_color, struct paint *painter)
-{}
-
-
-void plot(int cx, int cy, int x, int y, struct color pixel_color, struct paint * painter)
+void triangle(struct paint *painter, struct point pos1, struct point pos2, struct point pos3, struct color line_color)
 {
-    pixel(cx+x, cy+y, pixel_color, painter); pixel(cx+y, cy+x, pixel_color, painter);
-    pixel(cx-x, cy+y, pixel_color, painter); pixel(cx-y, cy+x, pixel_color, painter);
-    pixel(cx+x, cy-y, pixel_color, painter); pixel(cx+y, cy-x, pixel_color, painter);
-    pixel(cx-x, cy-y, pixel_color, painter); pixel(cx-y, cy-x, pixel_color, painter);
+    line(painter, pos1, pos2, line_color);
+    line(painter, pos2, pos3, line_color);
+    line(painter, pos3, pos1, line_color);
 }
 
-void circle(int cx, int cy, int radius, struct color circle_color, struct paint *painter)
+
+void plot(struct paint *painter, int cx, int cy, int x, int y, struct color pixel_color)
+{
+    pixel(painter, cx+x, cy+y, pixel_color); pixel(painter, cx+y, cy+x, pixel_color);
+    pixel(painter, cx-x, cy+y, pixel_color); pixel(painter, cx-y, cy+x, pixel_color);
+    pixel(painter, cx+x, cy-y, pixel_color); pixel(painter, cx+y, cy-x, pixel_color);
+    pixel(painter, cx-x, cy-y, pixel_color); pixel(painter, cx-y, cy-x, pixel_color);
+}
+
+void circle(struct paint *painter, int cx, int cy, int radius, struct color circle_color)
 {
     int x = 0;
     int y = radius;
     int d = 1 - radius;         /* 1.25 - r */
 
-    plot(cx, cy, x, y, circle_color, painter);
+    plot(painter, cx, cy, x, y, circle_color);
 
     while(x <= y){
         if(d<0){
@@ -142,44 +147,16 @@ void circle(int cx, int cy, int radius, struct color circle_color, struct paint 
             --y;
         }
         ++x;
-        plot(cx, cy, x, y, circle_color, painter);
+        plot(painter, cx, cy, x, y, circle_color);
     }
 }
 
-
-void clear(int clear_color, struct paint *painter)
+void clear(struct paint *painter, int clear_color)
 {
     memset(painter->canvas, clear_color, 3*painter->width*painter->height);
 }
 
-
-void render(struct paint *painter)
-{
-    clear(255, painter);        /* clear canvas */
-
-    /* paint a point */
-    struct color color  = {255, 0, 0};
-    pixel(40,40, color, painter);
-
-    /* paint a line */
-    struct color line_color = {0, 0, 0};
-    struct point start = {50,50};
-
-    for(int i = 0; i < 100; i++){
-        int x = rand()%100;
-        int y = rand()%100;
-        struct point end = {x, y};
-        line(start, end, line_color, painter);
-    }
-
-    /* paint a circle */
-    struct color circle_color = {124,22,57};
-    int circle_radius = 20;
-    circle(50, 50, circle_radius, circle_color, painter);
-}
-
-
-int print(struct paint *painter)
+int present(struct paint *painter)
 {
     int length = painter->width * painter->height;
     FILE *f = fopen("image.ppm", "w");
@@ -191,15 +168,48 @@ int print(struct paint *painter)
 
     printf("-----------OUTPUT SUCCESS--------\n");
 
-    return  fclose(f);
+    return fclose(f);
 }
 
+void render(struct paint *painter)
+{
+    clear(painter, 255);        /* clear canvas */
+    int w = painter->width;
+    int h = painter->height;
+
+    /* paint a point */
+    struct color color  = {255, 0, 0};
+    pixel(painter, 40, 40, color);
+
+    /* paint a line */
+    struct color line_color = {0, 0, 0};
+    struct point start = {50, 50};
+
+    for(int i = 0; i < 100; i++){
+        int x = rand() % w;
+        int y = rand() % h;
+        struct point end = {x, y};
+        line(painter, start, end, line_color);
+    }
+
+    /* paint a triangle */
+    struct color triangle_color = {23, 124, 210};
+    struct point p1 = {int(w/4), int(h/4)};
+    struct point p2 = {int(w/2), int(h/4*3)};
+    struct point p3 = {int(w/4*3), int(h/4)};
+    triangle(painter, p1, p2, p3, triangle_color);
+
+    /* paint a circle */
+    struct color circle_color = {124, 22, 57};
+    int circle_radius = 20;
+    circle(painter, 50, 50, circle_radius, circle_color);
+}
 
 int main(int argc, char **argv)
 {
   printf("----------POINT RENDER----------\n");
 
-  const int w = 100;
+  const int w = 800;
   const int h = 100;
 
   struct color canvas[w*h] = {0};
@@ -208,7 +218,7 @@ int main(int argc, char **argv)
                           .canvas = canvas };
   render(&painter);
 
-  if (print(&painter)) {
+  if (present(&painter)) {
       return -1;
   }
 
