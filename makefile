@@ -1,7 +1,8 @@
-objects = point.o
+objects = main.o
 point : $(objects)
-	cc -o point point.o
-point.o : point.c
-
+	cc -o point $(objects)
+$(objects) : main.c
 clean:
 	-rm point $(objects) *.ppm
+install:
+	./point
