@@ -1,1 +1,3 @@
 # point
+ make point
+ ./point

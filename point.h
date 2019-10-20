@@ -17,6 +17,9 @@ void swap(int *a, int *b)
 void pixel(struct paint *painter, int x, int y, struct color pixel_color)
 {
     /* origin is left-bottom */
+  if(x >= painter->width || y >= painter->height){
+    return;
+  }
     y = painter->height - y;
     int index = y * painter->height + x;
     painter->canvas[index].r = pixel_color.r;

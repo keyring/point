@@ -184,7 +184,7 @@ read_test()
   char **obj_info;
 
   /* open a PLY file for reading */
-  ply = ply_open_for_reading("drill_1.6mm_0_cyb", &nelems, &elist, &file_type, &version);
+  ply = ply_open_for_reading("bun_zipper", &nelems, &elist, &file_type, &version);
 
   /* print what we found out about the file */
   printf ("version %f\n", version);
