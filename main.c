@@ -130,7 +130,7 @@ void render(struct paint *painter)
   int h = painter->height;
 
   ply_model md;
-  read_ply("models/bunny/reconstruction/bun_zipper_res2", &md);
+  read_ply("../../models/bunny/reconstruction/bun_zipper_res3", &md);
 
   struct color model_color = {23, 124, 210};
   int scale = 10;               /* similar to model-view transform. matrix replace late */
@@ -146,6 +146,10 @@ void render(struct paint *painter)
     struct point p0 = {(int)(CANVAS_COORD(v0->x*scale+x_off, w)), (int)(CANVAS_COORD(v0->y*scale+y_off, h))};
     struct point p1 = {(int)(CANVAS_COORD(v1->x*scale+x_off, w)), (int)(CANVAS_COORD(v1->y*scale+y_off, h))};
     struct point p2 = {(int)(CANVAS_COORD(v2->x*scale+x_off, w)), (int)(CANVAS_COORD(v2->y*scale+y_off, h))};
+	model_color.r = rand() % 255;
+	model_color.g = rand() % 255;
+	model_color.b = rand() % 255;
+
 
     triangle(painter, p0, p1, p2, model_color);
   }
