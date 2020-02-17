@@ -6,6 +6,10 @@
 struct color { unsigned char r,g,b; };
 struct point { int x,y; };
 struct paint { int width; int height; struct color *canvas; };
+struct vector3f { float x, y, z; };
+
+#define MAX(a, b) ((a)>(b) ? (a) : (b))
+#define MIN(a, b) ((a)<(b) ? (a) : (b))
 
 /* utility */
 void swap(int *a, int *b)
@@ -21,6 +25,33 @@ void swap_point(struct point *a, struct point *b)
   a = b;
   b = t;
 }
+
+void cross3f(struct vector3f *a, struct vector3f *b, struct vector3f *result)
+{
+  result->x = a->y * b->z - a->z * b->y;
+  result->y = a->z * b->x - a->x * b->z;
+  result->z = a->x * b->y - a->y * b->x;
+}
+
+void barycentric(struct point a, struct point b, struct point c, struct point p, struct vector3f *result)
+{
+  struct vector3f u;
+  struct vector3f vec_x = { c.x-a.x, b.x-a.x, a.x-p.x };
+  struct vector3f vec_y = { c.y-a.y, b.y-a.y, a.y-p.y };
+  cross3f(&vec_x, &vec_y, &u);
+  if (abs(u.z) < 1){
+    result->x = -1;
+    result->y = 1;
+    result->z = 1;
+  }
+  else
+  {
+    result->x = 1.f - (u.x+u.y)/u.z;
+    result->y = u.y/u.z;
+    result->z = u.x/u.z;
+  }
+}
+
 
 void pixel(struct paint *painter, int x, int y, struct color pixel_color)
 {
@@ -46,8 +77,8 @@ void line_dda(struct paint *painter, struct point start, struct point end, struc
   float xi = (float)dx / steps;
   float yi = (float)dy / steps;
 
-  float x = (float)start.x + 0.5;
-  float y = (float)start.y + 0.5;
+  float x = (float)start.x + 0.5f;
+  float y = (float)start.y + 0.5f;
   for(int i = 0; i <= steps; i++){
     pixel(painter, (int)x, (int)y, line_color);
     x += xi;
@@ -136,6 +167,7 @@ void triangle_wireframe(struct paint *painter, struct point p1, struct point p2,
 
 void triangle_scan(struct paint *painter, struct point p1, struct point p2, struct point p3, struct color painter_color)
 {
+  /* edge walking */
   if(p1.y == p2.y && p1.y == p3.y) return;
   if(p1.y > p2.y) swap_point(&p1, &p2);
   if(p1.y > p3.y) swap_point(&p1, &p3);
@@ -173,10 +205,30 @@ void triangle_scan(struct paint *painter, struct point p1, struct point p2, stru
   }
 }
 
+void triangle_equa(struct paint *painter, struct point p1, struct point p2, struct point p3, struct color painter_color)
+{
+  /* edge equations: barycentric coordinates*/
+  struct point bbox_min = {MIN(p1.x, MIN(p2.x, p3.x)), MIN(p1.y, MIN(p2.y, p3.y))};
+  struct point bbox_max = {MAX(p1.x, MAX(p2.x, p3.x)), MAX(p1.y, MAX(p2.y, p3.y))};
+
+  struct point p;
+  struct vector3f bary_coord;
+  for (p.y = bbox_min.y; p.y < bbox_max.y; p.y++){
+    for (p.x = bbox_min.x; p.x< bbox_max.x; p.x++){
+      barycentric(p1, p2, p3, p, &bary_coord);
+      if (bary_coord.x < 0 || bary_coord.y < 0 || bary_coord.z < 0)
+        continue;
+      /* bary_coord could be used to interpolate color normal and other attribute. */
+      pixel(painter, p.x, p.y, painter_color);
+    }
+  }
+}
+
 void triangle(struct paint *painter, struct point p1, struct point p2, struct point p3, struct color painter_color)
 {
-	triangle_scan(painter, p1, p2, p3, painter_color);
   // triangle_wireframe(painter, p1, p2, p3, painter_color);
+  // triangle_scan(painter, p1, p2, p3, painter_color);
+  triangle_equa(painter, p1, p2, p3, painter_color);
 }
 
 
