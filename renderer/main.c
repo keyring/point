@@ -1,6 +1,7 @@
+#include <limits.h>
 #include <math.h>
 #include "point.h"
-#include "3rd/ply-1.1/ply.h"
+#include "ply-1.1/ply.h"
 
 typedef struct {
   float x, y, z;
@@ -105,53 +106,70 @@ void read_ply(char *name, ply_model *md)
 
 void clear(struct paint *painter, int clear_color)
 {
-  memset(painter->canvas, clear_color, 3*painter->width*painter->height);
+    unsigned int length = 3 * painter->width * painter->height;
+    memset(painter->canvas, clear_color, length);
+    memset(painter->zbuffer, INT_MIN, length);
 }
 
 int present(struct paint *painter)
 {
   int length = painter->width * painter->height;
-  FILE *f = fopen("image.ppm", "w");
+  FILE *color_rt = fopen("image.ppm", "w");
+  FILE *depth_rt = fopen("depth.ppm", "w");
 
-  fprintf( f, "P3\n%d %d\n%d\n", painter->width, painter->height, 255 );
+  fprintf(color_rt, "P3\n%d %d\n%d\n", painter->width, painter->height, 255 );
+  fprintf(depth_rt, "P3\n%d %d\n%d\n", painter->width, painter->height, 255 );
   for (int i = 0; i < length; i++) {
-    fprintf( f, "%d %d %d ",painter->canvas[i].r, painter->canvas[i].g, painter->canvas[i].b );
+    fprintf( color_rt, "%d %d %d ",painter->canvas[i].r, painter->canvas[i].g, painter->canvas[i].b );
+    int depth_color = painter->zbuffer[i] * 255;
+    fprintf(depth_rt, "%d %d %d ", depth_color, depth_color, depth_color);
   }
 
   printf("-----------OUTPUT SUCCESS--------\n");
-
-  return fclose(f);
+  fclose(depth_rt);
+  return fclose(color_rt);
 }
 
 void render(struct paint *painter)
 {
   clear(painter, 0);        /* clear canvas */
-  int w = painter->width;
-  int h = painter->height;
+  int width = painter->width;
+  int height = painter->height;
 
   ply_model md;
   read_ply("../../models/bunny/reconstruction/bun_zipper_res3", &md);
 
   struct color model_color = {23, 124, 210};
-  int scale = 10;               /* similar to model-view transform. matrix replace late */
+  int scale = 10;               /* similar to model-view transform. matrix replace later */
   int x_off = 1;
   int y_off = 0;
   ply_vertex *v0, *v1, *v2;
-
+  vec3 light = { 0, 0, -1 };
   for(int i = 0; i < md.num_faces; i++){
     v0 = md.vlist[md.flist[i]->verts[0]];
     v1 = md.vlist[md.flist[i]->verts[1]];
     v2 = md.vlist[md.flist[i]->verts[2]];
 
-    struct point p0 = {(int)(CANVAS_COORD(v0->x*scale+x_off, w)), (int)(CANVAS_COORD(v0->y*scale+y_off, h))};
-    struct point p1 = {(int)(CANVAS_COORD(v1->x*scale+x_off, w)), (int)(CANVAS_COORD(v1->y*scale+y_off, h))};
-    struct point p2 = {(int)(CANVAS_COORD(v2->x*scale+x_off, w)), (int)(CANVAS_COORD(v2->y*scale+y_off, h))};
-	model_color.r = rand() % 255;
-	model_color.g = rand() % 255;
-	model_color.b = rand() % 255;
+    vec3 p0 = {CANVAS_COORD(v0->x*scale+x_off, width), CANVAS_COORD(v0->y*scale+y_off, height), v0->z*scale};
+    vec3 p1 = {CANVAS_COORD(v1->x*scale+x_off, width), CANVAS_COORD(v1->y*scale+y_off, height), v1->z*scale};
+    vec3 p2 = {CANVAS_COORD(v2->x*scale+x_off, width), CANVAS_COORD(v2->y*scale+y_off, height), v2->z*scale};
 
+    vec3 first_vec, second_vec, cross, normal;
+    vec3_sub(v1, v0, &first_vec);
+    vec3_sub(v2, v0, &second_vec);
 
-    triangle(painter, p0, p1, p2, model_color);
+    vec3_cross(&first_vec, &second_vec, &cross);
+    vec3_normal(&cross, &normal);
+
+    float intensity = vec3_dot(&normal, &light);
+    if (intensity < 0) {
+        continue;
+    }
+    model_color.r = intensity * 255;
+    model_color.g = intensity * 255;
+    model_color.b = intensity * 255;
+
+    rasterize(painter, &p0, &p1, &p2, model_color);
   }
 }
 
@@ -163,15 +181,20 @@ int main(int argc, char **argv)
   const int h = 2048;
 
   struct color *canvas = malloc(sizeof(struct color) *w*h);
+  float *zbuffer = malloc(sizeof(float) * w * h);
 
   struct paint painter = {.width = w,
                           .height = h,
+                          .zbuffer = zbuffer,
                           .canvas = canvas };
   render(&painter);
 
   if (present(&painter)) {
       return -1;
   }
+
+  free(canvas);
+  free(zbuffer);
 
   return 0;
 

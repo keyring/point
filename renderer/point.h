@@ -1,15 +1,21 @@
+#ifndef P_POINT_H
+#define P_POINT_H
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
 #include <string.h>
 
+#include "xmath.h"
+
 struct color { unsigned char r,g,b; };
 struct point { int x,y; };
-struct paint { int width; int height; struct color *canvas; };
-struct vector3f { float x, y, z; };
-
-#define MAX(a, b) ((a)>(b) ? (a) : (b))
-#define MIN(a, b) ((a)<(b) ? (a) : (b))
+struct paint {
+    int width;
+    int height;
+    float* zbuffer;
+    struct color *canvas;
+};
 
 /* utility */
 void swap(int *a, int *b)
@@ -26,19 +32,12 @@ void swap_point(struct point *a, struct point *b)
   b = t;
 }
 
-void cross3f(struct vector3f *a, struct vector3f *b, struct vector3f *result)
+void barycentric(const vec2 *a, const vec2 *b, const vec2 *c, const vec2 *p, vec3 *result)
 {
-  result->x = a->y * b->z - a->z * b->y;
-  result->y = a->z * b->x - a->x * b->z;
-  result->z = a->x * b->y - a->y * b->x;
-}
-
-void barycentric(struct point a, struct point b, struct point c, struct point p, struct vector3f *result)
-{
-  struct vector3f u;
-  struct vector3f vec_x = { c.x-a.x, b.x-a.x, a.x-p.x };
-  struct vector3f vec_y = { c.y-a.y, b.y-a.y, a.y-p.y };
-  cross3f(&vec_x, &vec_y, &u);
+  vec3 u;
+  vec3 vec_x = { c->x-a->x, b->x-a->x, a->x-p->x };
+  vec3 vec_y = { c->y-a->y, b->y-a->y, a->y-p->y };
+  vec3_cross(&vec_x, &vec_y, &u);
   if (abs(u.z) < 1){
     result->x = -1;
     result->y = 1;
@@ -208,14 +207,17 @@ void triangle_scan(struct paint *painter, struct point p1, struct point p2, stru
 void triangle_equa(struct paint *painter, struct point p1, struct point p2, struct point p3, struct color painter_color)
 {
   /* edge equations: barycentric coordinates*/
-  struct point bbox_min = {MIN(p1.x, MIN(p2.x, p3.x)), MIN(p1.y, MIN(p2.y, p3.y))};
-  struct point bbox_max = {MAX(p1.x, MAX(p2.x, p3.x)), MAX(p1.y, MAX(p2.y, p3.y))};
+  struct point bbox_min = {XMATH_MIN(p1.x, XMATH_MIN(p2.x, p3.x)), XMATH_MIN(p1.y, XMATH_MIN(p2.y, p3.y))};
+  struct point bbox_max = {XMATH_MAX(p1.x, XMATH_MAX(p2.x, p3.x)), XMATH_MAX(p1.y, XMATH_MAX(p2.y, p3.y))};
 
   struct point p;
-  struct vector3f bary_coord;
+  vec3 bary_coord;
+  vec2 v1 = { p1.x, p1.y };
+  vec2 v2 = { p2.x, p2.y };
+  vec2 v3 = { p3.x, p3.y };
   for (p.y = bbox_min.y; p.y < bbox_max.y; p.y++){
     for (p.x = bbox_min.x; p.x< bbox_max.x; p.x++){
-      barycentric(p1, p2, p3, p, &bary_coord);
+      barycentric(&v1, &v2, &v3, &p, &bary_coord);
       if (bary_coord.x < 0 || bary_coord.y < 0 || bary_coord.z < 0)
         continue;
       /* bary_coord could be used to interpolate color normal and other attribute. */
@@ -229,6 +231,32 @@ void triangle(struct paint *painter, struct point p1, struct point p2, struct po
   // triangle_wireframe(painter, p1, p2, p3, painter_color);
   // triangle_scan(painter, p1, p2, p3, painter_color);
   triangle_equa(painter, p1, p2, p3, painter_color);
+}
+
+void rasterize(struct paint* painter, vec3 *p1, vec3 *p2, vec3 *p3, struct color painter_color)
+{
+    /* edge equations: barycentric coordinates*/
+    vec2 bbox_min = { XMATH_MIN(p1->x, XMATH_MIN(p2->x, p3->x)), XMATH_MIN(p1->y, XMATH_MIN(p2->y, p3->y)) };
+    vec2 bbox_max = { XMATH_MAX(p1->x, XMATH_MAX(p2->x, p3->x)), XMATH_MAX(p1->y, XMATH_MAX(p2->y, p3->y)) };
+
+    vec3 p;
+    vec3 bary_coord;
+    unsigned int idx;
+    for (p.y = bbox_min.y; p.y < bbox_max.y; p.y++) {
+        for (p.x = bbox_min.x; p.x < bbox_max.x; p.x++) {
+            barycentric(p1, p2, p3, &p, &bary_coord);
+            if (bary_coord.x < 0 || bary_coord.y < 0 || bary_coord.z < 0)
+                continue;
+            /* bary_coord could be used to interpolate color, normal, depth and other attribute. */
+            p.z = (p1->z * bary_coord.x + p2->z * bary_coord.y + p3->z * bary_coord.z);
+            idx = p.y + p.x * painter->width;
+            if (painter->zbuffer[idx] < p.z) {
+                continue;
+            }
+            painter->zbuffer[idx] = p.z;
+            pixel(painter, p.x, p.y, painter_color);
+        }
+    }
 }
 
 
@@ -259,3 +287,6 @@ void circle(struct paint *painter, int cx, int cy, int radius, struct color circ
     plot(painter, cx, cy, x, y, circle_color);
   }
 }
+
+
+#endif
